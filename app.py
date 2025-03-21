@@ -12,15 +12,39 @@ from vehicle_manager import save_image
 import base64
 from io import BytesIO
 from datetime import datetime, timedelta
+import os
+
+def get_log_files():
+    """Retorna lista de arquivos de log disponíveis"""
+    log_dir = "logs"
+    if os.path.exists(log_dir):
+        return [f for f in os.listdir(log_dir) if f.endswith('.log')]
+    return []
+
+def read_log_file(filename):
+    """Lê e retorna o conteúdo do arquivo de log"""
+    try:
+        with open(os.path.join("logs", filename), 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        return f"Erro ao ler arquivo de log: {str(e)}"
 
 def main():
-    # Configuração da página para mobile
+    # Configuração da página para mobile com opção de download de logs
     st.set_page_config(
         page_title="Gerenciador de Veículos",
         layout="wide",
         initial_sidebar_state="collapsed",
         menu_items={
-            'About': 'Gerenciador de Veículos - Versão Mobile'
+            'About': 'Gerenciador de Veículos - Versão Mobile',
+            'Get help': None,
+            'Report a bug': None,
+            'Settings': {
+                'Download Logs': {
+                    'type': 'action',
+                    'callback': lambda: download_logs()
+                }
+            }
         }
     )
     
@@ -110,6 +134,27 @@ def main():
 
     st.title("Gerenciador de Veículos")
     init_db()
+
+    # Função para download dos logs
+    def download_logs():
+        log_files = get_log_files()
+        if log_files:
+            for log_file in log_files:
+                log_content = read_log_file(log_file)
+                st.download_button(
+                    label=f"📥 Download {log_file}",
+                    data=log_content,
+                    file_name=log_file,
+                    mime="text/plain",
+                    key=f"download_{log_file}"
+                )
+        else:
+            st.info("Nenhum arquivo de log encontrado.")
+
+    # Adiciona botão de download de logs no sidebar
+    with st.sidebar:
+        if st.button("📋 Download Logs"):
+            download_logs()
 
     # Menu mais amigável para mobile
     menu = st.selectbox(
