@@ -29,6 +29,23 @@ def read_log_file(filename):
     except Exception as e:
         return f"Erro ao ler arquivo de log: {str(e)}"
 
+def download_logs():
+    """Função para download dos logs"""
+    log_files = get_log_files()
+    if log_files:
+        st.write("### Arquivos de Log Disponíveis")
+        for log_file in log_files:
+            log_content = read_log_file(log_file)
+            st.download_button(
+                label=f"📥 Download {log_file}",
+                data=log_content,
+                file_name=log_file,
+                mime="text/plain",
+                key=f"download_{log_file}"
+            )
+    else:
+        st.info("Nenhum arquivo de log encontrado.")
+
 def main():
     # Configuração da página para mobile
     st.set_page_config(
@@ -127,38 +144,22 @@ def main():
     st.title("Gerenciador de Veículos")
     init_db()
 
-    # Adiciona menu na barra lateral
+    # Menu na barra lateral apenas para navegação
     with st.sidebar:
-        menu = st.radio(
+        selected_page = st.radio(
             "Menu Principal",
             ["📋 Visualizar Veículos", "➕ Adicionar Veículo", "📊 Logs do Sistema"],
             key="menu_principal"
         )
-        
-        if menu == "📊 Logs do Sistema":
-            download_logs()
-        elif menu == "➕ Adicionar Veículo":
-            add_vehicle_form()
-        else:  # Visualizar Veículos
-            view_vehicles()
-
-    # Função para download dos logs
-    def download_logs():
-        """Função para download dos logs"""
-        log_files = get_log_files()
-        if log_files:
-            st.write("### Arquivos de Log Disponíveis")
-            for log_file in log_files:
-                log_content = read_log_file(log_file)
-                st.download_button(
-                    label=f"📥 Download {log_file}",
-                    data=log_content,
-                    file_name=log_file,
-                    mime="text/plain",
-                    key=f"download_{log_file}"
-                )
-        else:
-            st.info("Nenhum arquivo de log encontrado.")
+    
+    # Conteúdo principal baseado na seleção
+    if selected_page == "📊 Logs do Sistema":
+        st.header("Logs do Sistema")
+        download_logs()
+    elif selected_page == "➕ Adicionar Veículo":
+        add_vehicle_form()
+    else:  # Visualizar Veículos
+        view_vehicles()
 
 def add_maintenance_form(vehicle_id, maintenance_data=None):
     is_editing = maintenance_data is not None
