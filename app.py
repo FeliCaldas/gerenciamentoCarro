@@ -36,16 +36,10 @@ def main():
         layout="wide",
         initial_sidebar_state="collapsed",
         menu_items={
-            'About': 'Gerenciador de Veículos - Versão Mobile',
-            'Get help': None,
-            'Report a bug': None
+            'About': 'Gerenciador de Veículos - Versão Mobile'
         }
     )
 
-    # Adiciona botão de download de logs no topo da página
-    if st.button("📋 Download Logs", key="top_logs"):
-        download_logs()
-    
     # Configurações para melhor experiência mobile
     st.markdown("""
         <style>
@@ -133,10 +127,27 @@ def main():
     st.title("Gerenciador de Veículos")
     init_db()
 
+    # Adiciona menu na barra lateral
+    with st.sidebar:
+        menu = st.radio(
+            "Menu Principal",
+            ["📋 Visualizar Veículos", "➕ Adicionar Veículo", "📊 Logs do Sistema"],
+            key="menu_principal"
+        )
+        
+        if menu == "📊 Logs do Sistema":
+            download_logs()
+        elif menu == "➕ Adicionar Veículo":
+            add_vehicle_form()
+        else:  # Visualizar Veículos
+            view_vehicles()
+
     # Função para download dos logs
     def download_logs():
+        """Função para download dos logs"""
         log_files = get_log_files()
         if log_files:
+            st.write("### Arquivos de Log Disponíveis")
             for log_file in log_files:
                 log_content = read_log_file(log_file)
                 st.download_button(
@@ -148,22 +159,6 @@ def main():
                 )
         else:
             st.info("Nenhum arquivo de log encontrado.")
-
-    # Adiciona botão de download de logs no sidebar
-    with st.sidebar:
-        if st.button("📋 Download Logs"):
-            download_logs()
-
-    # Menu mais amigável para mobile
-    menu = st.selectbox(
-        "Escolha uma opção",
-        ["Adicionar Veículo", "Visualizar Veículos"]
-    )
-
-    if menu == "Adicionar Veículo":
-        add_vehicle_form()
-    else:
-        view_vehicles()
 
 def add_maintenance_form(vehicle_id, maintenance_data=None):
     is_editing = maintenance_data is not None
