@@ -30,7 +30,7 @@ def read_log_file(filename):
         return f"Erro ao ler arquivo de log: {str(e)}"
 
 def main():
-    # Configuração da página para mobile com opção de download de logs
+    # Configuração da página para mobile
     st.set_page_config(
         page_title="Gerenciador de Veículos",
         layout="wide",
@@ -38,15 +38,13 @@ def main():
         menu_items={
             'About': 'Gerenciador de Veículos - Versão Mobile',
             'Get help': None,
-            'Report a bug': None,
-            'Settings': {
-                'Download Logs': {
-                    'type': 'action',
-                    'callback': lambda: download_logs()
-                }
-            }
+            'Report a bug': None
         }
     )
+
+    # Adiciona botão de download de logs no topo da página
+    if st.button("📋 Download Logs", key="top_logs"):
+        download_logs()
     
     # Configurações para melhor experiência mobile
     st.markdown("""
