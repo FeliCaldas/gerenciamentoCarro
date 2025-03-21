@@ -26,8 +26,30 @@ class CustomFormatter(logging.Formatter):
         formatter = logging.Formatter(log_fmt, datefmt='%Y-%m-%d %H:%M:%S')
         return formatter.format(record)
 
+def cleanup_old_logs(days=15):
+    """Remove logs mais antigos que o número de dias especificado"""
+    if not os.path.exists('logs'):
+        return
+        
+    current_time = datetime.now()
+    for filename in os.listdir('logs'):
+        if not filename.endswith('.log'):
+            continue
+            
+        file_path = os.path.join('logs', filename)
+        file_time = datetime.fromtimestamp(os.path.getctime(file_path))
+        
+        if (current_time - file_time).days > days:
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                print(f"Erro ao remover log antigo {filename}: {e}")
+
 def setup_logger(name):
     """Configura e retorna um logger personalizado"""
+    # Limpa logs antigos antes de criar novo logger
+    cleanup_old_logs()
+    
     # Cria o diretório de logs se não existir
     if not os.path.exists('logs'):
         os.makedirs('logs')

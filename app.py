@@ -144,14 +144,57 @@ def main():
     st.title("Gerenciador de Veículos")
     init_db()
 
-    # Menu na barra lateral apenas para navegação
+    # Adicionar estilo personalizado para o menu lateral
+    st.markdown("""
+        <style>
+        /* Estilo para o menu lateral */
+        .sidebar .sidebar-content {
+            background-image: linear-gradient(180deg, #2e7bcf 0%, #1565C0 100%);
+        }
+        
+        /* Estilo para os botões do menu */
+        .stRadio > label {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 5px 0;
+            transition: all 0.3s;
+        }
+        
+        .stRadio > label:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Estilo para o título do menu */
+        .sidebar .sidebar-content [data-testid="stMarkdownContainer"] p {
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 10px 0;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Menu lateral melhorado
     with st.sidebar:
+        st.markdown("### 🚗 Menu do Sistema")
+        st.markdown("---")
+        
         selected_page = st.radio(
-            "Menu Principal",
-            ["📋 Visualizar Veículos", "➕ Adicionar Veículo", "📊 Logs do Sistema"],
-            key="menu_principal"
+            "",  # Rótulo vazio para melhor visual
+            options=[
+                "📋 Visualizar Veículos",
+                "➕ Adicionar Veículo", 
+                "📊 Logs do Sistema"
+            ],
+            key="menu_principal",
+            format_func=lambda x: f"{x}"  # Mantém os emojis
         )
-    
+        
+        st.markdown("---")
+        st.markdown("##### 🔄 Última atualização:")
+        st.text(datetime.now().strftime("%d/%m/%Y %H:%M"))
+
     # Conteúdo principal baseado na seleção
     if selected_page == "📊 Logs do Sistema":
         st.header("Logs do Sistema")
