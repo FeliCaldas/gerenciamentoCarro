@@ -68,15 +68,18 @@ def admin_section():
     if not check_password():
         return
 
-    tab1, tab2 = st.tabs(["📥 Importar/Exportar Veículos", "📁 Gerenciar Logs"])
+    tab1, tab2 = st.tabs([
+        "📥 Importar/Exportar Veículos",
+        "📁 Gerenciar Logs"
+    ])
     
     with tab1:
         st.header("Importar/Exportar Veículos")
-        col1, col2 = st.columns(2)
-        with col1:
+        if st.button("💾 Exportar Veículos", key="admin_export", use_container_width=True):
             export_vehicles_data()
-        with col2:
-            import_vehicles_data()
+            
+        st.markdown("---")
+        import_vehicles_data()
             
     with tab2:
         st.header("Gerenciar Logs do Sistema")
@@ -561,17 +564,20 @@ def import_vehicles_data():
 def view_vehicles():
     st.header("Veículos Cadastrados")
     
-    # Apenas relatório de manutenções fica público
-    export_maintenance_report()
-    
+    # Adiciona o botão de relatório de forma discreta
+    col1, col2 = st.columns([8, 2])
+    with col2:
+        if st.button("📊", help="Exportar Relatório de Manutenções", key="export_report"):
+            export_maintenance_report()
+
     vehicles = get_vehicles()
+    if not vehicles:
+        st.warning("Nenhum veículo cadastrado.")
+        return
 
-    # Inicializa os estados
-    if 'delete_vehicle_confirmation' not in st.session_state:
-        st.session_state.delete_vehicle_confirmation = None
-    if 'editing_vehicle' not in st.session_state:
-        st.session_state.editing_vehicle = None
-
+    st.subheader(f"Total de veículos: {len(vehicles)}")
+    
+    # ... resto do código existente da view_vehicles ...
     for vehicle in vehicles:
         with st.expander(f"{vehicle['brand']} {vehicle['model']} ({vehicle['year']})"):
             if st.session_state.editing_vehicle == vehicle['id']:
