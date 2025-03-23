@@ -54,15 +54,27 @@ def init_db():
     conn.commit()
     conn.close()
 
+def check_vehicle_exists(brand, model, year, color):
+    """Verifica se um veículo com as mesmas características já existe"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        SELECT COUNT(*) FROM vehicles 
+        WHERE brand = ? AND model = ? AND year = ? AND color = ?
+    ''', (brand, model, year, color))
+    count = c.fetchone()[0]
+    conn.close()
+    return count > 0
+
 def add_vehicle(vehicle_data):
     """Função melhorada para adicionar veículo com suporte a importação"""
     conn = get_db()
     c = conn.cursor()
     
-    # Remove id se existir (para importação)
-    if 'id' in vehicle_data:
-        del vehicle_data['id']
-        
+    # Remove id e maintenance se existirem (para importação)
+    vehicle_data.pop('id', None)
+    vehicle_data.pop('maintenance', None)
+    
     # Garante que todos os campos necessários existam
     required_fields = ['brand', 'model', 'year', 'color', 'purchase_price', 
                       'additional_costs', 'fipe_price', 'image_data']
@@ -70,6 +82,25 @@ def add_vehicle(vehicle_data):
     for field in required_fields:
         if field not in vehicle_data:
             vehicle_data[field] = None
+
+    # Verifica se já existe veículo idêntico
+    if check_vehicle_exists(
+        vehicle_data['brand'],
+        vehicle_data['model'],
+        vehicle_data['year'],
+        vehicle_data['color']
+    ):
+        # Modifica o nome adicionando um sufixo
+        suffix = 1
+        original_model = vehicle_data['model']
+        while check_vehicle_exists(
+            vehicle_data['brand'],
+            f"{original_model} ({suffix})",
+            vehicle_data['year'],
+            vehicle_data['color']
+        ):
+            suffix += 1
+        vehicle_data['model'] = f"{original_model} ({suffix})"
             
     c.execute('''
         INSERT INTO vehicles (brand, model, year, color, purchase_price, 
@@ -86,13 +117,11 @@ def add_vehicle(vehicle_data):
         vehicle_data['image_data']
     ))
     
-    # Pega o ID do veículo inserido
-    vehicle_id = c.lastrowid
-    
+    # Retorna o ID do veículo inserido
+    new_vehicle_id = c.lastrowid
     conn.commit()
     conn.close()
-    
-    return vehicle_id
+    return new_vehicle_id
 
 def get_vehicles():
     conn = get_db()

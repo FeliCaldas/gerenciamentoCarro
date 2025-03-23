@@ -99,19 +99,27 @@ def admin_section():
             
             if uploaded_file and st.button("📤 Importar Dados", use_container_width=True):
                 try:
+                    imported = 0
                     data = json.load(uploaded_file)
                     vehicles = data.get('vehicles', [])
-                    for vehicle in vehicles:
+                    
+                    progress_bar = st.progress(0)
+                    for i, vehicle in enumerate(vehicles):
                         # Guarda manutenções antes de adicionar veículo
                         maintenance_records = vehicle.pop('maintenance', [])
-                        # Adiciona veículo
-                        vehicle_id = add_vehicle(vehicle)
-                        # Adiciona manutenções
+                        
+                        # Adiciona veículo e obtém novo ID
+                        new_vehicle_id = add_vehicle(vehicle)
+                        
+                        # Adiciona manutenções com o novo ID do veículo
                         for maintenance in maintenance_records:
-                            maintenance['vehicle_id'] = vehicle_id
+                            maintenance['vehicle_id'] = new_vehicle_id
                             add_maintenance(maintenance)
+                            
+                        imported += 1
+                        progress_bar.progress((i + 1) / len(vehicles))
                     
-                    st.success(f"Importados {len(vehicles)} veículos com sucesso!")
+                    st.success(f"Importados {imported} veículos com sucesso!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Erro ao importar dados: {str(e)}")
