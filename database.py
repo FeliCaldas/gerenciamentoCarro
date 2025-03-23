@@ -8,11 +8,7 @@ def init_db():
     conn = get_db()
     c = conn.cursor()
     
-    # Apaga todas as tabelas existentes
-    c.execute('DROP TABLE IF EXISTS maintenance')
-    c.execute('DROP TABLE IF EXISTS vehicles')
-    
-    # Cria a tabela vehicles com todos os campos necessários
+    # Criar tabela de veículos se não existir
     c.execute('''
         CREATE TABLE IF NOT EXISTS vehicles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,7 +23,7 @@ def init_db():
         )
     ''')
 
-    # Cria a tabela maintenance
+    # Criar tabela de manutenções se não existir
     c.execute('''
         CREATE TABLE IF NOT EXISTS maintenance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

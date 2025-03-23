@@ -222,6 +222,16 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
+    # Inicialização dos estados da sessão
+    if 'editing_vehicle' not in st.session_state:
+        st.session_state.editing_vehicle = None
+    if 'delete_vehicle_confirmation' not in st.session_state:
+        st.session_state.delete_vehicle_confirmation = None
+    if 'show_maintenance_form' not in st.session_state:
+        st.session_state.show_maintenance_form = False
+    if 'current_vehicle' not in st.session_state:
+        st.session_state.current_vehicle = None
+
     st.title("Gerenciador de Veículos")
     init_db()
 
@@ -608,84 +618,93 @@ def import_vehicles_data():
 def view_vehicles():
     st.header("Veículos Cadastrados")
     
+    # Adiciona botão de exportar relatório
     col1, col2 = st.columns([8, 2])
     with col2:
         if st.button("📊", help="Exportar Relatório de Manutenções", key="export_report"):
             export_maintenance_report()
     
-    vehicles = get_vehicles()
-    if not vehicles:
-        st.warning("Nenhum veículo cadastrado.")
-        return
-    
-    st.subheader(f"Total de veículos: {len(vehicles)}")
-    for vehicle in vehicles:
-        with st.expander(f"{vehicle['brand']} {vehicle['model']} ({vehicle['year']})"):
-            if st.session_state.editing_vehicle == vehicle['id']:
-                add_vehicle_form(vehicle)
-                if st.button("❌ Cancelar Edição", key=f"cancel_{vehicle['id']}", type="primary"):
-                    st.session_state.editing_vehicle = None
-                    st.rerun()
-            else:
-                if vehicle['image_data']:
-                    try:
-                        image_bytes = base64.b64decode(vehicle['image_data'])
-                        with st.container():
-                            st.markdown('<div class="img-container">', unsafe_allow_html=True)
-                            st.image(
-                                image_bytes,
-                                width=400,
-                                output_format="PNG",
-                                caption=f"{vehicle['brand']} {vehicle['model']}",
-                                clamp=True
-                            )
-                            st.markdown('</div>', unsafe_allow_html=True)
-                    except Exception as e:
-                        st.error(f"Erro ao carregar imagem: {str(e)}")
-
-                total_cost = vehicle['purchase_price'] + vehicle['additional_costs']
-                difference = vehicle['fipe_price'] - total_cost
-
-                st.markdown(f"""
-                    <div class="vehicle-info">
-                    <p>🎨 <strong>Cor:</strong> {vehicle.get('color', 'Não informada')}</p>
-                    <p>📊 <strong>Valor de Aquisição:</strong> R$ {vehicle['purchase_price']:.2f}</p>
-                    <p>💰 <strong>Custos Adicionais:</strong> R$ {vehicle['additional_costs']:.2f}</p>
-                    <p>💵 <strong>Valor Total:</strong> R$ {total_cost:.2f}</p>
-                    <p>🚗 <strong>Valor FIPE:</strong> R$ {vehicle['fipe_price']:.2f}</p>
-                    <p>📈 <strong>Diferença FIPE:</strong> R$ {difference:.2f}</p>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                if difference > 0:
-                    st.success("✅ Valor positivo em relação à FIPE")
+    try:
+        vehicles = get_vehicles()
+        if not vehicles:
+            st.warning("Nenhum veículo cadastrado.")
+            return
+        
+        st.subheader(f"Total de veículos: {len(vehicles)}")
+        
+        # Exibe cada veículo em um expander
+        for vehicle in vehicles:
+            with st.expander(f"🚗 {vehicle['brand']} {vehicle['model']} ({vehicle['year']})"):
+                # Resto do código permanece o mesmo
+                if st.session_state.editing_vehicle == vehicle['id']:
+                    add_vehicle_form(vehicle)
+                    if st.button("❌ Cancelar Edição", key=f"cancel_{vehicle['id']}", type="primary"):
+                        st.session_state.editing_vehicle = None
+                        st.rerun()
                 else:
-                    st.error("❌ Valor negativo em relação à FIPE")
+                    if vehicle['image_data']:
+                        try:
+                            image_bytes = base64.b64decode(vehicle['image_data'])
+                            with st.container():
+                                st.markdown('<div class="img-container">', unsafe_allow_html=True)
+                                st.image(
+                                    image_bytes,
+                                    width=400,
+                                    output_format="PNG",
+                                    caption=f"{vehicle['brand']} {vehicle['model']}",
+                                    clamp=True
+                                )
+                                st.markdown('</div>', unsafe_allow_html=True)
+                        except Exception as e:
+                            st.error(f"Erro ao carregar imagem: {str(e)}")
 
-                st.subheader("📝 Histórico de Manutenções")
-                view_maintenance_history(vehicle['id'])
+                    total_cost = vehicle['purchase_price'] + vehicle['additional_costs']
+                    difference = vehicle['fipe_price'] - total_cost
 
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("✏️ Editar", key=f"edit_{vehicle['id']}", type="primary"):
-                        st.session_state.editing_vehicle = vehicle['id']
-                        st.rerun()
-                with col2:
-                    if st.button(f"🗑️ Excluir", key=f"delete_{vehicle['id']}", type="primary"):
-                        st.session_state.delete_vehicle_confirmation = vehicle['id']
+                    st.markdown(f"""
+                        <div class="vehicle-info">
+                        <p>🎨 <strong>Cor:</strong> {vehicle.get('color', 'Não informada')}</p>
+                        <p>📊 <strong>Valor de Aquisição:</strong> R$ {vehicle['purchase_price']:.2f}</p>
+                        <p>💰 <strong>Custos Adicionais:</strong> R$ {vehicle['additional_costs']:.2f}</p>
+                        <p>💵 <strong>Valor Total:</strong> R$ {total_cost:.2f}</p>
+                        <p>🚗 <strong>Valor FIPE:</strong> R$ {vehicle['fipe_price']:.2f}</p>
+                        <p>📈 <strong>Diferença FIPE:</strong> R$ {difference:.2f}</p>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-            if st.session_state.delete_vehicle_confirmation == vehicle['id']:
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button(f"⚠️ Confirmar", key=f"confirm_{vehicle['id']}", type="primary"):
-                        delete_vehicle(vehicle['id'])
-                        st.success("Veículo excluído com sucesso!")
-                        st.session_state.delete_vehicle_confirmation = None
-                        st.rerun()
-                with col2:
-                    if st.button("❌ Cancelar", key=f"cancel_delete_{vehicle['id']}", type="primary"):
-                        st.session_state.delete_vehicle_confirmation = None
-                        st.rerun()
+                    if difference > 0:
+                        st.success("✅ Valor positivo em relação à FIPE")
+                    else:
+                        st.error("❌ Valor negativo em relação à FIPE")
+
+                    st.subheader("📝 Histórico de Manutenções")
+                    view_maintenance_history(vehicle['id'])
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("✏️ Editar", key=f"edit_{vehicle['id']}", type="primary"):
+                            st.session_state.editing_vehicle = vehicle['id']
+                            st.rerun()
+                    with col2:
+                        if st.button(f"🗑️ Excluir", key=f"delete_{vehicle['id']}", type="primary"):
+                            st.session_state.delete_vehicle_confirmation = vehicle['id']
+
+                if st.session_state.delete_vehicle_confirmation == vehicle['id']:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button(f"⚠️ Confirmar", key=f"confirm_{vehicle['id']}", type="primary"):
+                            delete_vehicle(vehicle['id'])
+                            st.success("Veículo excluído com sucesso!")
+                            st.session_state.delete_vehicle_confirmation = None
+                            st.rerun()
+                    with col2:
+                        if st.button("❌ Cancelar", key=f"cancel_delete_{vehicle['id']}", type="primary"):
+                            st.session_state.delete_vehicle_confirmation = None
+                            st.rerun()
+
+    except Exception as e:
+        st.error(f"Erro ao carregar veículos: {str(e)}")
+        st.error("Detalhes técnicos do erro:", e)
 
 if __name__ == "__main__":
     main()
