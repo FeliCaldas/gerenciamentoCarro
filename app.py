@@ -269,6 +269,79 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
+    # Substitua os estilos CSS existentes por versões que usam variáveis de tema
+    st.markdown("""
+        <style>
+        /* Estilos responsivos ao tema */
+        .maintenance-card {
+            background-color: var(--background-color);
+            border: 1px solid var(--secondary-background-color);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 0.5rem 0;
+            color: var(--text-color);
+        }
+        
+        .vehicle-info {
+            font-size: 18px !important;
+            line-height: 2 !important;
+            padding: 10px;
+            background-color: var(--background-color);
+            border: 1px solid var(--secondary-background-color);
+            border-radius: 0.5rem;
+            color: var(--text-color);
+        }
+
+        /* Menu lateral com cores dinâmicas */
+        .sidebar .sidebar-content {
+            background: var(--background-color);
+        }
+        
+        .menu-button {
+            background-color: var(--secondary-background-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+        
+        .menu-button:hover {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+        }
+        
+        /* Header do menu com tema responsivo */
+        .menu-header {
+            background: var(--secondary-background-color);
+            padding: 10px;
+            border-radius: 5px;
+            color: var(--text-color);
+        }
+        
+        /* Cards e containers */
+        .img-container {
+            background: var(--background-color);
+            border: 1px solid var(--secondary-background-color);
+        }
+
+        /* Tabelas e grids responsivos ao tema */
+        table {
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        /* Botões com cores do tema */
+        .stButton>button {
+            background-color: var(--secondary-background-color);
+            color: var(--text-color);
+            border: 1px solid var(--primary-color);
+        }
+        
+        .stButton>button:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     # Inicialização dos estados da sessão
     if 'editing_vehicle' not in st.session_state:
         st.session_state.editing_vehicle = None
@@ -313,14 +386,14 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    # Substitua o trecho do menu lateral por este código atualizado
+    # Atualizar o header do menu lateral para usar as classes de tema
     with st.sidebar:
         st.markdown("""
-            <div style='text-align: center; padding: 10px 0px;'>
-                <h2 style='color: #FFFFFF; margin-bottom: 0;'>🚗</h2>
-                <h3 style='color: #FFFFFF; margin: 10px 0;'>Gerenciador de Veículos</h3>
-                <div style='background: rgba(255,255,255,0.1); padding: 8px; border-radius: 5px; margin: 10px 0;'>
-                    <div style='color: #FFFFFF; opacity: 0.9; font-size: 0.8em;'>
+            <div class='menu-header'>
+                <h2 style='margin-bottom: 0;'>🚗</h2>
+                <h3 style='margin: 10px 0;'>Gerenciador de Veículos</h3>
+                <div style='padding: 8px; border-radius: 5px; margin: 10px 0;'>
+                    <div style='opacity: 0.9; font-size: 0.8em;'>
                         🔄 Atualizado em:<br/>
                         {}</div>
                 </div>
