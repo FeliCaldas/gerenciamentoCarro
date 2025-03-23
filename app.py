@@ -326,7 +326,7 @@ def main():
                 </div>
                 <hr style='margin: 20px 0; opacity: 0.2;'/>
             </div>
-        """.format(datetime.now().strftime("%d/%m/%Y às %H:%M")), unsafe_allow_html=True)
+        """.format((datetime.now() - timedelta(hours=3)).strftime("%d/%m/%Y às %H:%M")), unsafe_allow_html=True)
 
         menu_items = [
             {"label": "Visualizar Veículos", "icon": "📋", "id": "view"},
@@ -385,14 +385,6 @@ def main():
             )
             if selected:
                 st.session_state.current_page = item['id']
-        
-        # Rodapé do menu
-        st.markdown("""
-            <div class='menu-footer'>
-                <div style='margin-bottom: 5px;'>🔄 Última atualização:</div>
-                <div style='opacity: 0.8;'>{}</div>
-            </div>
-        """.format(datetime.now().strftime("%d/%m/%Y %H:%M")), unsafe_allow_html=True)
 
     # Conteúdo principal baseado na seleção
     if 'current_page' not in st.session_state:
