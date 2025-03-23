@@ -12,11 +12,7 @@ def init_db():
     c.execute('DROP TABLE IF EXISTS maintenance')
     c.execute('DROP TABLE IF EXISTS vehicles')
     
-    # Verifica se a coluna color existe
-    c.execute("PRAGMA table_info(vehicles)")
-    columns = [column[1] for column in c.fetchall()]
-    
-    # Cria a tabela se não existir
+    # Cria a tabela vehicles com todos os campos necessários
     c.execute('''
         CREATE TABLE IF NOT EXISTS vehicles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,12 +26,8 @@ def init_db():
             image_data TEXT
         )
     ''')
-    
-    # Adiciona a coluna color se não existir
-    if 'color' not in columns:
-        c.execute('ALTER TABLE vehicles ADD COLUMN color TEXT')
 
-    # Nova tabela para manutenções sem campo next_maintenance_date
+    # Cria a tabela maintenance
     c.execute('''
         CREATE TABLE IF NOT EXISTS maintenance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,12 +40,6 @@ def init_db():
             FOREIGN KEY (vehicle_id) REFERENCES vehicles (id)
         )
     ''')
-
-    # Adiciona a coluna author se não existir
-    c.execute("PRAGMA table_info(maintenance)")
-    columns = [column[1] for column in c.fetchall()]
-    if 'author' not in columns:
-        c.execute('ALTER TABLE maintenance ADD COLUMN author TEXT')
 
     conn.commit()
     conn.close()
