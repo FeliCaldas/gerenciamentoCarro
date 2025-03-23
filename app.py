@@ -425,15 +425,16 @@ def add_maintenance_form(vehicle_id, maintenance_data=None):
 def view_maintenance_history(vehicle_id):
     maintenance_records = get_vehicle_maintenance(vehicle_id)
     
-    # Inicializar o estado de confirmação de exclusão se não existir
     if 'delete_confirmation' not in st.session_state:
         st.session_state.delete_confirmation = None
     
-    # Botão para adicionar nova manutenção
-    if st.button("➕ Nova Manutenção", key=f"add_maintenance_{vehicle_id}"):
-        st.session_state.show_maintenance_form = True
-        st.session_state.current_vehicle = vehicle_id
-        
+    # Alterado para usar um único botão com key única
+    col1, col2 = st.columns([4,1])
+    with col2:
+        if st.button("➕ Nova", key=f"add_maint_btn_{vehicle_id}_{int(time.time())}"):
+            st.session_state.show_maintenance_form = True
+            st.session_state.current_vehicle = vehicle_id
+
     # Mostrar formulário de nova manutenção
     if getattr(st.session_state, 'show_maintenance_form', False) and getattr(st.session_state, 'current_vehicle', None) == vehicle_id:
         with st.container():
@@ -761,8 +762,8 @@ def view_vehicles():
                             st.rerun()
 
     except Exception as e:
-        st.error(f"Erro ao carregar veículos: {str(e)}")
-        st.error("Detalhes técnicos do erro:", e)
+        st.error(f"Erro ao carregar veículos: {e}") # Corrigido formato do error()
+        st.exception(e) # Adicionado para mostrar o traceback completo
 
 if __name__ == "__main__":
     main()
