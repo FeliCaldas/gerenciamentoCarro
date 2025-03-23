@@ -55,10 +55,25 @@ def init_db():
     conn.close()
 
 def add_vehicle(vehicle_data):
+    """Função melhorada para adicionar veículo com suporte a importação"""
     conn = get_db()
     c = conn.cursor()
+    
+    # Remove id se existir (para importação)
+    if 'id' in vehicle_data:
+        del vehicle_data['id']
+        
+    # Garante que todos os campos necessários existam
+    required_fields = ['brand', 'model', 'year', 'color', 'purchase_price', 
+                      'additional_costs', 'fipe_price', 'image_data']
+    
+    for field in required_fields:
+        if field not in vehicle_data:
+            vehicle_data[field] = None
+            
     c.execute('''
-        INSERT INTO vehicles (brand, model, year, color, purchase_price, additional_costs, fipe_price, image_data)
+        INSERT INTO vehicles (brand, model, year, color, purchase_price, 
+                            additional_costs, fipe_price, image_data)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         vehicle_data['brand'],
@@ -70,6 +85,7 @@ def add_vehicle(vehicle_data):
         vehicle_data['fipe_price'],
         vehicle_data['image_data']
     ))
+    
     conn.commit()
     conn.close()
 

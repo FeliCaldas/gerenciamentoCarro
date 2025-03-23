@@ -486,11 +486,54 @@ def export_maintenance_report():
     else:
         st.info("Não há registros de manutenção para exportar.")
 
+def export_vehicles_data():
+    """Função para exportar dados de todos os veículos"""
+    vehicles = get_vehicles()
+    if vehicles:
+        # Converte dados em JSON com formatação legível
+        df = pd.DataFrame(vehicles)
+        json_str = df.to_json(orient='records', indent=2)
+        
+        st.download_button(
+            label="💾 Exportar Veículos (JSON)",
+            data=json_str,
+            file_name="veiculos.json",
+            mime="application/json",
+            key="export_vehicles"
+        )
+    else:
+        st.info("Não há veículos para exportar.")
+
+def import_vehicles_data():
+    """Função para importar dados de veículos"""
+    uploaded_file = st.file_uploader(
+        "Importar Veículos (JSON)",
+        type=['json'],
+        key="import_vehicles"
+    )
+    
+    if uploaded_file:
+        try:
+            data = pd.read_json(uploaded_file)
+            for _, row in data.iterrows():
+                vehicle_data = row.to_dict()
+                add_vehicle(vehicle_data)
+            st.success(f"Importados {len(data)} veículos com sucesso!")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Erro ao importar veículos: {str(e)}")
+
 def view_vehicles():
     st.header("Veículos Cadastrados")
     
-    # Botão de exportação no topo da página
-    export_maintenance_report()
+    # Adiciona botões de exportação/importação no topo
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        export_maintenance_report()
+    with col2:
+        export_vehicles_data()
+    with col3:
+        import_vehicles_data()
 
     vehicles = get_vehicles()
 
