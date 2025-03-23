@@ -316,24 +316,24 @@ def main():
     # Substitua o trecho do menu lateral por este código atualizado
     with st.sidebar:
         st.markdown("""
-            <div style='text-align: center; margin-bottom: 5px;'>
-                <div style='color: #FFFFFF; opacity: 0.8;'>
-                    🔄 Última atualização:<br/>
-                    {}</div>
-            </div>
-            <div style='text-align: center; margin-bottom: 20px;'>
+            <div style='text-align: center; padding: 10px 0px;'>
                 <h2 style='color: #FFFFFF; margin-bottom: 0;'>🚗</h2>
                 <h3 style='color: #FFFFFF; margin: 10px 0;'>Gerenciador de Veículos</h3>
+                <div style='background: rgba(255,255,255,0.1); padding: 8px; border-radius: 5px; margin: 10px 0;'>
+                    <div style='color: #FFFFFF; opacity: 0.9; font-size: 0.8em;'>
+                        🔄 Atualizado em:<br/>
+                        {}</div>
+                </div>
                 <hr style='margin: 20px 0; opacity: 0.2;'/>
             </div>
-        """.format(datetime.now().strftime("%d/%m/%Y %H:%M")), unsafe_allow_html=True)
-        
+        """.format(datetime.now().strftime("%d/%m/%Y às %H:%M")), unsafe_allow_html=True)
+
         menu_items = [
             {"label": "Visualizar Veículos", "icon": "📋", "id": "view"},
             {"label": "Adicionar Veículo", "icon": "➕", "id": "add"},
             {"label": "Administração", "icon": "⚙️", "id": "admin"}
         ]
-        
+
         # Adiciona estilo personalizado para os botões do menu
         st.markdown("""
             <style>
