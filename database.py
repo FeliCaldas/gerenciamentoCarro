@@ -1,5 +1,9 @@
 import sqlite3
 import json
+from cache_manager import (
+    save_vehicles_to_cache, load_vehicles_from_cache,
+    update_vehicle_in_cache, delete_vehicle_from_cache
+)
 
 def get_db():
     return sqlite3.connect('vehicles.db')
@@ -53,7 +57,7 @@ def check_vehicle_exists(brand, model, year, color):
     return count > 0
 
 def add_vehicle(vehicle_data):
-    """Função melhorada para adicionar veículo com suporte a importação"""
+    """Adiciona veículo e atualiza cache"""
     conn = get_db()
     c = conn.cursor()
     
@@ -107,18 +111,34 @@ def add_vehicle(vehicle_data):
     new_vehicle_id = c.lastrowid
     conn.commit()
     conn.close()
+    
+    # Após inserir, atualiza o cache
+    vehicles = get_vehicles()
+    vehicle_data['id'] = new_vehicle_id
+    vehicles.append(vehicle_data)
+    save_vehicles_to_cache(vehicles)
+    
     return new_vehicle_id
 
 def get_vehicles():
+    """Busca veículos primeiro no cache, depois no banco"""
+    cached_vehicles = load_vehicles_from_cache()
+    if (cached_vehicles is not None):
+        return cached_vehicles
+
     conn = get_db()
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute('SELECT * FROM vehicles')
     vehicles = [dict(row) for row in c.fetchall()]
     conn.close()
+    
+    # Salva no cache
+    save_vehicles_to_cache(vehicles)
     return vehicles
 
 def update_vehicle(vehicle_id, vehicle_data):
+    """Atualiza veículo e cache"""
     conn = get_db()
     c = conn.cursor()
     c.execute('''
@@ -138,8 +158,13 @@ def update_vehicle(vehicle_id, vehicle_data):
     ))
     conn.commit()
     conn.close()
+    
+    # Atualiza o cache
+    vehicle_data['id'] = vehicle_id
+    update_vehicle_in_cache(vehicle_id, vehicle_data)
 
 def delete_vehicle(vehicle_id):
+    """Remove veículo e atualiza cache"""
     conn = get_db()
     c = conn.cursor()
     
@@ -151,6 +176,9 @@ def delete_vehicle(vehicle_id):
     
     conn.commit()
     conn.close()
+    
+    # Remove do cache
+    delete_vehicle_from_cache(vehicle_id)
 
 # Funções para gerenciar manutenções
 def add_maintenance(maintenance_data):

@@ -118,10 +118,12 @@ def admin_section():
                         imported += 1
                         progress_bar.progress((i + 1) / len(vehicles))
                     
-                    st.success(f"Importados {imported} veículos com sucesso!")
+                    st.success(f"✅ Importação concluída! {imported} veículos importados com sucesso!")
+                    st.balloons() # Adiciona efeito visual
+                    time.sleep(1)  # Pequena pausa para mostrar a mensagem
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Erro ao importar dados: {str(e)}")
+                    st.error(f"❌ Erro ao importar dados: {str(e)}")
 
     with tab2:
         st.header("Gerenciar Logs do Sistema")
