@@ -8,6 +8,10 @@ def init_db():
     conn = get_db()
     c = conn.cursor()
     
+    # Apaga todas as tabelas existentes
+    c.execute('DROP TABLE IF EXISTS maintenance')
+    c.execute('DROP TABLE IF EXISTS vehicles')
+    
     # Verifica se a coluna color existe
     c.execute("PRAGMA table_info(vehicles)")
     columns = [column[1] for column in c.fetchall()]
