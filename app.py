@@ -5,7 +5,7 @@ import io
 from database import (
     init_db, add_vehicle, get_vehicles, update_vehicle, delete_vehicle,
     add_maintenance, get_vehicle_maintenance, update_maintenance, delete_maintenance,
-    get_all_maintenance_records
+    get_all_maintenance_records, check_vehicle_exists, get_vehicle_by_details
 )
 from fipe_api import get_fipe_brands, get_fipe_models, get_fipe_years, get_fipe_price
 from vehicle_manager import save_image
@@ -98,36 +98,92 @@ def admin_section():
             
             if uploaded_file and st.button("📤 Importar Dados", use_container_width=True):
                 try:
-                    imported = 0
                     data = json.load(uploaded_file)
                     vehicles = data.get('vehicles', [])
                     
-                    progress_bar = st.progress(0)
-                    for i, vehicle in enumerate(vehicles):
-                        # Guarda manutenções antes de adicionar veículo
-                        maintenance_records = vehicle.pop('maintenance', [])
-                        
-                        # Adiciona veículo e obtém novo ID
-                        new_vehicle_id = add_vehicle(vehicle)
-                        
-                        # Adiciona manutenções com o novo ID do veículo
-                        for maintenance in maintenance_records:
-                            maintenance['vehicle_id'] = new_vehicle_id
-                            add_maintenance(maintenance)
-                            
-                        imported += 1
-                        progress_bar.progress((i + 1) / len(vehicles))
+                    # Lista para armazenar veículos duplicados
+                    duplicates = []
                     
-                    st.success(f"✅ Importação concluída! {imported} veículos importados com sucesso!")
-                    st.balloons() # Adiciona efeito visual
-                    time.sleep(1)  # Pequena pausa para mostrar a mensagem
-                    st.rerun()
+                    # Verifica duplicatas antes de importar
+                    for vehicle in vehicles:
+                        if check_vehicle_exists(
+                            vehicle['brand'],
+                            vehicle['model'],
+                            vehicle['year'],
+                            vehicle.get('color', '')
+                        ):
+                            duplicates.append(vehicle)
+                    
+                    if duplicates:
+                        st.warning(f"Encontrados {len(duplicates)} veículos que já existem no sistema.")
+                        st.write("Veículos duplicados:")
+                        for v in duplicates:
+                            st.write(f"- {v['brand']} {v['model']} ({v['year']})")
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("🔄 Substituir Existentes", key="replace_vehicles"):
+                                imported = import_vehicles_with_progress(vehicles, replace=True)
+                                st.success(f"✅ Importação concluída! {imported} veículos importados com sucesso!")
+                                st.balloons()
+                                time.sleep(1)
+                                st.rerun()
+                        with col2:
+                            if st.button("➕ Manter Ambos", key="keep_both"):
+                                imported = import_vehicles_with_progress(vehicles, replace=False)
+                                st.success(f"✅ Importação concluída! {imported} veículos importados com sucesso!")
+                                st.balloons()
+                                time.sleep(1)
+                                st.rerun()
+                    else:
+                        # Se não houver duplicatas, importa normalmente
+                        imported = import_vehicles_with_progress(vehicles, replace=False)
+                        st.success(f"✅ Importação concluída! {imported} veículos importados com sucesso!")
+                        st.balloons()
+                        time.sleep(1)
+                        st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro ao importar dados: {str(e)}")
 
     with tab2:
         st.header("Gerenciar Logs do Sistema")
         download_logs()
+
+def import_vehicles_with_progress(vehicles, replace=False):
+    """Função auxiliar para importar veículos com barra de progresso"""
+    imported = 0
+    progress_bar = st.progress(0)
+    
+    for i, vehicle in enumerate(vehicles):
+        maintenance_records = vehicle.pop('maintenance', [])
+        
+        try:
+            if replace:
+                # Remove veículo existente se estiver substituindo
+                existing_vehicle = get_vehicle_by_details(
+                    vehicle['brand'],
+                    vehicle['model'],
+                    vehicle['year'],
+                    vehicle.get('color', '')
+                )
+                if existing_vehicle:
+                    delete_vehicle(existing_vehicle['id'])
+            
+            new_vehicle_id = add_vehicle(vehicle)
+            
+            # Adiciona manutenções
+            for maintenance in maintenance_records:
+                maintenance['vehicle_id'] = new_vehicle_id
+                add_maintenance(maintenance)
+                
+            imported += 1
+            progress_bar.progress((i + 1) / len(vehicles))
+            
+        except Exception as e:
+            st.warning(f"Erro ao importar veículo {vehicle['brand']} {vehicle['model']}: {str(e)}")
+            continue
+            
+    return imported
 
 def main():
     # Configuração da página para mobile

@@ -275,3 +275,16 @@ def get_all_maintenance_records():
     maintenance_records = [dict(row) for row in c.fetchall()]
     conn.close()
     return maintenance_records
+
+def get_vehicle_by_details(brand, model, year, color):
+    """Retorna um veículo específico baseado nos detalhes"""
+    conn = get_db()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('''
+        SELECT * FROM vehicles 
+        WHERE brand = ? AND model = ? AND year = ? AND color = ?
+    ''', (brand, model, year, color))
+    vehicle = c.fetchone()
+    conn.close()
+    return dict(vehicle) if vehicle else None
