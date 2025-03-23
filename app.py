@@ -181,14 +181,15 @@ def main():
         st.markdown("---")
         
         selected_page = st.radio(
-            "",  # Rótulo vazio para melhor visual
+            label="Navegação do Sistema",  # Adicionado label adequado
             options=[
                 "📋 Visualizar Veículos",
                 "➕ Adicionar Veículo", 
                 "📊 Logs do Sistema"
             ],
             key="menu_principal",
-            format_func=lambda x: f"{x}"  # Mantém os emojis
+            format_func=lambda x: f"{x}",  # Mantém os emojis
+            label_visibility="collapsed"  # Esconde o label mas mantém acessibilidade
         )
         
         st.markdown("---")
