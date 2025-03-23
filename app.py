@@ -14,7 +14,7 @@ from io import BytesIO
 from datetime import datetime, timedelta
 import os
 import json
-
+import time  # Adicione esta importação no topo do arquivo
 def get_log_files():
     """Retorna lista de arquivos de log disponíveis"""
     log_dir = "logs"
@@ -73,7 +73,6 @@ def admin_section():
         "📥 Importar/Exportar Veículos",
         "📁 Gerenciar Logs"
     ])
-    
     with tab1:
         st.header("Importar/Exportar Veículos")
         
@@ -445,7 +444,6 @@ def add_vehicle_form(vehicle_data=None):
     is_editing = vehicle_data is not None
     st.header("Editar Veículo" if is_editing else "Adicionar Novo Veículo")
 
-    # Interface mais touch-friendly
     with st.container():
         brands = get_fipe_brands()
         selected_brand = st.selectbox(
@@ -493,55 +491,59 @@ def add_vehicle_form(vehicle_data=None):
         )
 
         uploaded_file = st.file_uploader(
-            "Foto do Veículo (Toque para selecionar)",
+            "Foto do Veículo",
             type=['jpg', 'jpeg', 'png']
         )
 
-    button_text = "Salvar Alterações" if is_editing else "Salvar Veículo"
-    if st.button(button_text, use_container_width=True):
         try:
             fipe_data = get_fipe_price(selected_brand, selected_model, selected_year)
             fipe_price = float(fipe_data['Valor'].replace('R$ ', '').replace('.', '').replace(',', '.'))
-
-            # Mantém a imagem existente se não houver upload de nova imagem
-            if is_editing:
-                image_data = vehicle_data['image_data']
-                if uploaded_file:
-                    image_bytes = uploaded_file.getvalue()
-                    image_data = base64.b64encode(image_bytes).decode()
-            else:
-                image_data = None
-                if uploaded_file:
-                    image_bytes = uploaded_file.getvalue()
-                    image_data = base64.b64encode(image_bytes).decode()
-
-            total_cost = purchase_price + additional_costs
-            fipe_difference = fipe_price - total_cost
-
-            vehicle_info = {
-                'brand': brands[brands['codigo'] == selected_brand]['nome'].iloc[0],
-                'model': models[models['codigo'] == selected_model]['nome'].iloc[0],
-                'year': years[years['codigo'] == selected_year]['nome'].iloc[0],
-                'color': color,
-                'purchase_price': purchase_price,
-                'additional_costs': additional_costs,
-                'fipe_price': fipe_price,
-                'image_data': image_data
-            }
-
-            if is_editing:
-                update_vehicle(vehicle_data['id'], vehicle_info)
-                st.success("Veículo atualizado com sucesso!")
-                st.session_state.editing_vehicle = None  # Limpa o estado de edição
-            else:
-                add_vehicle(vehicle_info)
-                st.success("Veículo adicionado com sucesso!")
-
-            st.balloons()
-            st.rerun()
-
+            st.info(f"Valor FIPE: R$ {fipe_price:,.2f}")
         except Exception as e:
-            st.error(f"Erro ao {'atualizar' if is_editing else 'salvar'} veículo: {str(e)}")
+            st.error(f"Erro ao obter valor FIPE: {str(e)}")
+            fipe_price = 0.0
+
+        button_text = "💾 Salvar Alterações" if is_editing else "💾 Adicionar Veículo"
+        if st.button(button_text, use_container_width=True, type="primary"):
+            try:
+                # Mantém a imagem existente se não houver upload de nova imagem
+                if is_editing:
+                    image_data = vehicle_data['image_data']
+                    if uploaded_file:
+                        image_bytes = uploaded_file.getvalue()
+                        image_data = base64.b64encode(image_bytes).decode()
+                else:
+                    image_data = None
+                    if uploaded_file:
+                        image_bytes = uploaded_file.getvalue()
+                        image_data = base64.b64encode(image_bytes).decode()
+
+                total_cost = purchase_price + additional_costs
+                fipe_difference = fipe_price - total_cost
+
+                vehicle_info = {
+                    'brand': brands[brands['codigo'] == selected_brand]['nome'].iloc[0],
+                    'model': models[models['codigo'] == selected_model]['nome'].iloc[0],
+                    'year': years[years['codigo'] == selected_year]['nome'].iloc[0],
+                    'color': color,
+                    'purchase_price': purchase_price,
+                    'additional_costs': additional_costs,
+                    'fipe_price': fipe_price,
+                    'image_data': image_data
+                }
+
+                if is_editing:
+                    update_vehicle(vehicle_data['id'], vehicle_info)
+                    st.success("✅ Veículo atualizado com sucesso!")
+                    st.session_state.editing_vehicle = None
+                else:
+                    add_vehicle(vehicle_info)
+                    st.success("✅ Veículo adicionado com sucesso!")
+                st.balloons()
+                time.sleep(1)
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Erro ao {'atualizar' if is_editing else 'adicionar'} veículo: {str(e)}")
 
 def export_maintenance_report():
     records = get_all_maintenance_records()
@@ -573,18 +575,16 @@ def export_vehicles_data():
     if not vehicles:
         st.info("Não há veículos para exportar.")
         return
-        
+    
     # Adiciona manutenções para cada veículo
     for vehicle in vehicles:
         vehicle['maintenance'] = get_vehicle_maintenance(vehicle['id'])
         
-    # Converte dados em JSON com formatação legível
     export_data = {
         'vehicles': vehicles,
         'export_date': datetime.now().isoformat()
     }
     json_str = json.dumps(export_data, indent=2, ensure_ascii=False)
-    
     return json_str
 
 def import_vehicles_data():
@@ -594,7 +594,6 @@ def import_vehicles_data():
         type=['json'],
         key="import_vehicles"
     )
-    
     if uploaded_file:
         try:
             data = pd.read_json(uploaded_file)
@@ -609,20 +608,17 @@ def import_vehicles_data():
 def view_vehicles():
     st.header("Veículos Cadastrados")
     
-    # Adiciona o botão de relatório de forma discreta
     col1, col2 = st.columns([8, 2])
     with col2:
         if st.button("📊", help="Exportar Relatório de Manutenções", key="export_report"):
             export_maintenance_report()
-
+    
     vehicles = get_vehicles()
     if not vehicles:
         st.warning("Nenhum veículo cadastrado.")
         return
-
-    st.subheader(f"Total de veículos: {len(vehicles)}")
     
-    # ... resto do código existente da view_vehicles ...
+    st.subheader(f"Total de veículos: {len(vehicles)}")
     for vehicle in vehicles:
         with st.expander(f"{vehicle['brand']} {vehicle['model']} ({vehicle['year']})"):
             if st.session_state.editing_vehicle == vehicle['id']:
@@ -634,15 +630,14 @@ def view_vehicles():
                 if vehicle['image_data']:
                     try:
                         image_bytes = base64.b64decode(vehicle['image_data'])
-                        # Criar um container para a imagem
                         with st.container():
                             st.markdown('<div class="img-container">', unsafe_allow_html=True)
                             st.image(
                                 image_bytes,
-                                width=400,  # Define a largura da imagem para um tamanho agradável
+                                width=400,
                                 output_format="PNG",
                                 caption=f"{vehicle['brand']} {vehicle['model']}",
-                                clamp=True  # Isso ajuda a manter a proporção da imagem
+                                clamp=True
                             )
                             st.markdown('</div>', unsafe_allow_html=True)
                     except Exception as e:
@@ -667,7 +662,6 @@ def view_vehicles():
                 else:
                     st.error("❌ Valor negativo em relação à FIPE")
 
-                # Adiciona seção de manutenções
                 st.subheader("📝 Histórico de Manutenções")
                 view_maintenance_history(vehicle['id'])
 
@@ -676,7 +670,6 @@ def view_vehicles():
                     if st.button("✏️ Editar", key=f"edit_{vehicle['id']}", type="primary"):
                         st.session_state.editing_vehicle = vehicle['id']
                         st.rerun()
-
                 with col2:
                     if st.button(f"🗑️ Excluir", key=f"delete_{vehicle['id']}", type="primary"):
                         st.session_state.delete_vehicle_confirmation = vehicle['id']
