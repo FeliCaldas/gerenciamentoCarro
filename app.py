@@ -324,33 +324,91 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    # Menu lateral melhorado
+    # Substitua o trecho do menu lateral por este código atualizado
     with st.sidebar:
-        st.markdown("### 🚗 Menu do Sistema")
-        st.markdown("---")
+        st.markdown("""
+            <div style='text-align: center; margin-bottom: 20px;'>
+                <h2 style='color: #FFFFFF; margin-bottom: 0;'>🚗</h2>
+                <h3 style='color: #FFFFFF; margin: 10px 0;'>Gerenciador de Veículos</h3>
+                <hr style='margin: 20px 0; opacity: 0.2;'/>
+            </div>
+        """, unsafe_allow_html=True)
         
-        selected_page = st.radio(
-            label="Navegação do Sistema",  # Adicionado label adequado
-            options=[
-                "📋 Visualizar Veículos",
-                "➕ Adicionar Veículo", 
-                "⚙️ Administração"
-            ],
-            key="menu_principal",
-            format_func=lambda x: f"{x}",  # Mantém os emojis
-            label_visibility="collapsed"  # Esconde o label mas mantém acessibilidade
-        )
+        menu_items = [
+            {"label": "Visualizar Veículos", "icon": "📋", "id": "view"},
+            {"label": "Adicionar Veículo", "icon": "➕", "id": "add"},
+            {"label": "Administração", "icon": "⚙️", "id": "admin"}
+        ]
         
-        st.markdown("---")
-        st.markdown("##### 🔄 Última atualização:")
-        st.text(datetime.now().strftime("%d/%m/%Y %H:%M"))
+        # Adiciona estilo personalizado para os botões do menu
+        st.markdown("""
+            <style>
+                div[data-testid="stVerticalBlock"] div[data-testid="stVerticalBlock"] {
+                    gap: 0.5rem;
+                }
+                .menu-button {
+                    width: 100%;
+                    padding: 15px;
+                    margin: 5px 0;
+                    border-radius: 10px;
+                    background-color: rgba(255, 255, 255, 0.1);
+                    color: white;
+                    text-align: left;
+                    cursor: pointer;
+                    border: none;
+                    transition: all 0.3s ease;
+                }
+                .menu-button:hover {
+                    background-color: rgba(255, 255, 255, 0.2);
+                    transform: translateX(5px);
+                }
+                .menu-button.selected {
+                    background-color: rgba(255, 255, 255, 0.3);
+                    border-left: 4px solid #FFFFFF;
+                }
+                .menu-icon {
+                    margin-right: 10px;
+                    font-size: 1.2em;
+                }
+                .menu-footer {
+                    position: absolute;
+                    bottom: 20px;
+                    left: 0;
+                    right: 0;
+                    text-align: center;
+                    color: #FFFFFF;
+                    font-size: 0.8em;
+                    padding: 10px;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        for item in menu_items:
+            selected = st.button(
+                f"{item['icon']} {item['label']}", 
+                key=f"menu_{item['id']}",
+                use_container_width=True
+            )
+            if selected:
+                st.session_state.current_page = item['id']
+        
+        # Rodapé do menu
+        st.markdown("""
+            <div class='menu-footer'>
+                <div style='margin-bottom: 5px;'>🔄 Última atualização:</div>
+                <div style='opacity: 0.8;'>{}</div>
+            </div>
+        """.format(datetime.now().strftime("%d/%m/%Y %H:%M")), unsafe_allow_html=True)
 
     # Conteúdo principal baseado na seleção
-    if selected_page == "⚙️ Administração":
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = 'view'
+        
+    if st.session_state.current_page == "admin":
         admin_section()
-    elif selected_page == "➕ Adicionar Veículo":
+    elif st.session_state.current_page == "add":
         add_vehicle_form()
-    else:  # Visualizar Veículos
+    else:  # view
         view_vehicles()
 
 def add_maintenance_form(vehicle_id, maintenance_data=None):
