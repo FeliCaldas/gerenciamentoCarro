@@ -46,6 +46,42 @@ def download_logs():
     else:
         st.info("Nenhum arquivo de log encontrado.")
 
+def check_password():
+    """Verifica a senha para acesso às funcionalidades administrativas"""
+    if 'password_correct' not in st.session_state:
+        st.session_state.password_correct = False
+        
+    if not st.session_state.password_correct:
+        password = st.text_input("Digite a senha de administrador", type="password")
+        if password == "lipe2008":
+            st.session_state.password_correct = True
+            st.success("Senha correta!")
+            return True
+        elif password:
+            st.error("Senha incorreta!")
+            return False
+        return False
+    return True
+
+def admin_section():
+    """Seção administrativa com funções protegidas por senha"""
+    if not check_password():
+        return
+
+    tab1, tab2 = st.tabs(["📥 Importar/Exportar Veículos", "📁 Gerenciar Logs"])
+    
+    with tab1:
+        st.header("Importar/Exportar Veículos")
+        col1, col2 = st.columns(2)
+        with col1:
+            export_vehicles_data()
+        with col2:
+            import_vehicles_data()
+            
+    with tab2:
+        st.header("Gerenciar Logs do Sistema")
+        download_logs()
+
 def main():
     # Configuração da página para mobile
     st.set_page_config(
@@ -185,7 +221,7 @@ def main():
             options=[
                 "📋 Visualizar Veículos",
                 "➕ Adicionar Veículo", 
-                "📊 Logs do Sistema"
+                "⚙️ Administração"
             ],
             key="menu_principal",
             format_func=lambda x: f"{x}",  # Mantém os emojis
@@ -197,9 +233,8 @@ def main():
         st.text(datetime.now().strftime("%d/%m/%Y %H:%M"))
 
     # Conteúdo principal baseado na seleção
-    if selected_page == "📊 Logs do Sistema":
-        st.header("Logs do Sistema")
-        download_logs()
+    if selected_page == "⚙️ Administração":
+        admin_section()
     elif selected_page == "➕ Adicionar Veículo":
         add_vehicle_form()
     else:  # Visualizar Veículos
@@ -526,15 +561,9 @@ def import_vehicles_data():
 def view_vehicles():
     st.header("Veículos Cadastrados")
     
-    # Adiciona botões de exportação/importação no topo
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        export_maintenance_report()
-    with col2:
-        export_vehicles_data()
-    with col3:
-        import_vehicles_data()
-
+    # Apenas relatório de manutenções fica público
+    export_maintenance_report()
+    
     vehicles = get_vehicles()
 
     # Inicializa os estados
