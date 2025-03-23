@@ -47,27 +47,16 @@ def download_logs():
     else:
         st.info("Nenhum arquivo de log encontrado.")
 
-def check_password():
-    """Verifica a senha para acesso às funcionalidades administrativas"""
-    if 'password_correct' not in st.session_state:
-        st.session_state.password_correct = False
-        
-    if not st.session_state.password_correct:
-        password = st.text_input("Digite a senha de administrador", type="password")
-        if password == "lipe2008":
-            st.session_state.password_correct = True
-            st.success("Senha correta!")
-            return True
-        elif password:
-            st.error("Senha incorreta!")
-            return False
-        return False
-    return True
-
 def admin_section():
     """Seção administrativa com funções protegidas por senha"""
-    if not check_password():
-        return
+    st.warning("""
+        ⚠️ **Área Administrativa - Atenção!**
+        
+        Esta é uma área sensível onde alterações podem afetar permanentemente os dados do sistema.
+        - Faça backup regularmente antes de modificar dados
+        - Verifique os dados antes de importar
+        - Confirme as alterações antes de salvar
+    """)
 
     tab1, tab2 = st.tabs([
         "📥 Importar/Exportar Veículos",
@@ -327,12 +316,17 @@ def main():
     # Substitua o trecho do menu lateral por este código atualizado
     with st.sidebar:
         st.markdown("""
+            <div style='text-align: center; margin-bottom: 5px;'>
+                <div style='color: #FFFFFF; opacity: 0.8;'>
+                    🔄 Última atualização:<br/>
+                    {}</div>
+            </div>
             <div style='text-align: center; margin-bottom: 20px;'>
                 <h2 style='color: #FFFFFF; margin-bottom: 0;'>🚗</h2>
                 <h3 style='color: #FFFFFF; margin: 10px 0;'>Gerenciador de Veículos</h3>
                 <hr style='margin: 20px 0; opacity: 0.2;'/>
             </div>
-        """, unsafe_allow_html=True)
+        """.format(datetime.now().strftime("%d/%m/%Y %H:%M")), unsafe_allow_html=True)
         
         menu_items = [
             {"label": "Visualizar Veículos", "icon": "📋", "id": "view"},
