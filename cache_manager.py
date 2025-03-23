@@ -1,6 +1,10 @@
+from datetime import datetime, timedelta
 import json
 import os
-from datetime import datetime, timedelta
+from logger import setup_logger
+
+# Configuração dos loggers
+logger = setup_logger('cache_manager')
 
 CACHE_DIR = "cache"
 VEHICLE_CACHE_DURATION = timedelta(days=60)  # Cache de veículos: 2 meses
@@ -41,30 +45,60 @@ def load_from_cache(key):
     return None
 
 def clear_cache():
-    if os.path.exists(CACHE_DIR):
-        for file in os.listdir(CACHE_DIR):
-            if file.endswith('.json'):
-                os.remove(os.path.join(CACHE_DIR, file))
+    """Limpa todo o cache"""
+    try:
+        if os.path.exists(CACHE_DIR):
+            count = 0
+            for file in os.listdir(CACHE_DIR):
+                if file.endswith('.json'):
+                    os.remove(os.path.join(CACHE_DIR, file))
+                    count += 1
+            logger.info(f"Cache limpo: {count} arquivo(s) removido(s)")
+    except Exception as e:
+        logger.error(f"Erro ao limpar cache: {e}")
 
 def save_vehicles_to_cache(vehicles_data):
     """Salva veículos no cache"""
-    save_to_cache('vehicles', vehicles_data)
+    try:
+        save_to_cache('vehicles', vehicles_data)
+        logger.info(f"Cache de veículos atualizado com {len(vehicles_data)} veículos")
+    except Exception as e:
+        logger.error(f"Erro ao salvar cache de veículos: {e}")
 
 def load_vehicles_from_cache():
     """Carrega veículos do cache"""
-    return load_from_cache('vehicles')
+    try:
+        data = load_from_cache('vehicles')
+        if data is not None:
+            logger.info("Cache de veículos carregado com sucesso")
+            return data
+        logger.debug("Cache de veículos não encontrado ou expirado")
+        return None
+    except Exception as e:
+        logger.error(f"Erro ao carregar cache de veículos: {e}")
+        return None
 
 def update_vehicle_in_cache(vehicle_id, vehicle_data):
     """Atualiza um veículo específico no cache"""
-    vehicles = load_vehicles_from_cache()
-    if vehicles:
-        vehicles = [v for v in vehicles if v['id'] != vehicle_id]
-        vehicles.append(vehicle_data)
-        save_vehicles_to_cache(vehicles)
+    try:
+        vehicles = load_vehicles_from_cache()
+        if vehicles:
+            vehicles = [v for v in vehicles if v['id'] != vehicle_id]
+            vehicles.append(vehicle_data)
+            save_vehicles_to_cache(vehicles)
+            logger.info(f"Veículo {vehicle_id} atualizado no cache")
+    except Exception as e:
+        logger.error(f"Erro ao atualizar veículo {vehicle_id} no cache: {e}")
 
 def delete_vehicle_from_cache(vehicle_id):
     """Remove um veículo do cache"""
-    vehicles = load_vehicles_from_cache()
-    if vehicles:
-        vehicles = [v for v in vehicles if v['id'] != vehicle_id]
-        save_vehicles_to_cache(vehicles)
+    try:
+        vehicles = load_vehicles_from_cache()
+        if vehicles:
+            old_count = len(vehicles)
+            vehicles = [v for v in vehicles if v['id'] != vehicle_id]
+            save_vehicles_to_cache(vehicles)
+            logger.info(f"Veículo {vehicle_id} removido do cache")
+            logger.debug(f"Total de veículos no cache: {len(vehicles)} (antes: {old_count})")
+    except Exception as e:
+        logger.error(f"Erro ao remover veículo {vehicle_id} do cache: {e}")
