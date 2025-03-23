@@ -13,6 +13,7 @@ import base64
 from io import BytesIO
 from datetime import datetime, timedelta
 import os
+import json
 
 def get_log_files():
     """Retorna lista de arquivos de log disponíveis"""
@@ -75,12 +76,46 @@ def admin_section():
     
     with tab1:
         st.header("Importar/Exportar Veículos")
-        if st.button("💾 Exportar Veículos", key="admin_export", use_container_width=True):
-            export_vehicles_data()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("💾 Exportar Dados", use_container_width=True):
+                json_str = export_vehicles_data()
+                if json_str:
+                    st.download_button(
+                        label="📥 Baixar Backup (JSON)",
+                        data=json_str,
+                        file_name=f"backup_veiculos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                        mime="application/json",
+                        key="download_backup"
+                    )
+        
+        with col2:
+            uploaded_file = st.file_uploader(
+                "Importar Backup (JSON)",
+                type=['json'],
+                key="import_vehicles"
+            )
             
-        st.markdown("---")
-        import_vehicles_data()
-            
+            if uploaded_file and st.button("📤 Importar Dados", use_container_width=True):
+                try:
+                    data = json.load(uploaded_file)
+                    vehicles = data.get('vehicles', [])
+                    for vehicle in vehicles:
+                        # Guarda manutenções antes de adicionar veículo
+                        maintenance_records = vehicle.pop('maintenance', [])
+                        # Adiciona veículo
+                        vehicle_id = add_vehicle(vehicle)
+                        # Adiciona manutenções
+                        for maintenance in maintenance_records:
+                            maintenance['vehicle_id'] = vehicle_id
+                            add_maintenance(maintenance)
+                    
+                    st.success(f"Importados {len(vehicles)} veículos com sucesso!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao importar dados: {str(e)}")
+
     with tab2:
         st.header("Gerenciar Logs do Sistema")
         download_logs()
@@ -525,22 +560,24 @@ def export_maintenance_report():
         st.info("Não há registros de manutenção para exportar.")
 
 def export_vehicles_data():
-    """Função para exportar dados de todos os veículos"""
+    """Função para exportar dados de todos os veículos e suas manutenções"""
     vehicles = get_vehicles()
-    if vehicles:
-        # Converte dados em JSON com formatação legível
-        df = pd.DataFrame(vehicles)
-        json_str = df.to_json(orient='records', indent=2)
-        
-        st.download_button(
-            label="💾 Exportar Veículos (JSON)",
-            data=json_str,
-            file_name="veiculos.json",
-            mime="application/json",
-            key="export_vehicles"
-        )
-    else:
+    if not vehicles:
         st.info("Não há veículos para exportar.")
+        return
+        
+    # Adiciona manutenções para cada veículo
+    for vehicle in vehicles:
+        vehicle['maintenance'] = get_vehicle_maintenance(vehicle['id'])
+        
+    # Converte dados em JSON com formatação legível
+    export_data = {
+        'vehicles': vehicles,
+        'export_date': datetime.now().isoformat()
+    }
+    json_str = json.dumps(export_data, indent=2, ensure_ascii=False)
+    
+    return json_str
 
 def import_vehicles_data():
     """Função para importar dados de veículos"""

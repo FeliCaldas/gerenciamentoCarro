@@ -86,8 +86,13 @@ def add_vehicle(vehicle_data):
         vehicle_data['image_data']
     ))
     
+    # Pega o ID do veículo inserido
+    vehicle_id = c.lastrowid
+    
     conn.commit()
     conn.close()
+    
+    return vehicle_id
 
 def get_vehicles():
     conn = get_db()
