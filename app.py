@@ -115,21 +115,18 @@ def admin_section():
                                 imported = import_vehicles_with_progress(vehicles, replace=True)
                                 st.success(f"✅ Importação concluída! {imported} veículos importados com sucesso!")
                                 st.balloons()
-                                time.sleep(1)
                                 st.rerun()
                         with col2:
                             if st.button("➕ Manter Ambos", key="keep_both"):
                                 imported = import_vehicles_with_progress(vehicles, replace=False)
                                 st.success(f"✅ Importação concluída! {imported} veículos importados com sucesso!")
                                 st.balloons()
-                                time.sleep(1)
                                 st.rerun()
                     else:
                         # Se não houver duplicatas, importa normalmente
                         imported = import_vehicles_with_progress(vehicles, replace=False)
                         st.success(f"✅ Importação concluída! {imported} veículos importados com sucesso!")
                         st.balloons()
-                        time.sleep(1)
                         st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro ao importar dados: {str(e)}")
@@ -726,7 +723,6 @@ def add_vehicle_form(vehicle_data=None):
                     add_vehicle(vehicle_info)
                     st.success("✅ Veículo adicionado com sucesso!")
                 st.balloons()
-                time.sleep(1)
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Erro ao {'atualizar' if is_editing else 'adicionar'} veículo: {str(e)}")
