@@ -227,32 +227,43 @@ def delete_vehicle(vehicle_id):
 def add_maintenance(maintenance_data):
     conn = get_db()
     c = conn.cursor()
-    
-    # Adiciona a manutenção sem next_maintenance_date
-    c.execute('''
-        INSERT INTO maintenance (vehicle_id, date, description, cost, mileage, author)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (
-        maintenance_data['vehicle_id'],
-        maintenance_data['date'],
-        maintenance_data['description'],
-        maintenance_data['cost'],
-        maintenance_data['mileage'],
-        maintenance_data['author']
-    ))
-    
-    # Atualiza os custos adicionais do veículo
-    c.execute('''
-        UPDATE vehicles
-        SET additional_costs = additional_costs + ?
-        WHERE id = ?
-    ''', (
-        maintenance_data['cost'],
-        maintenance_data['vehicle_id']
-    ))
-    
-    conn.commit()
-    conn.close()
+
+    try:
+        # Inicia uma transação
+        c.execute('BEGIN TRANSACTION')
+
+        # Adiciona a manutenção
+        c.execute('''
+            INSERT INTO maintenance (vehicle_id, date, description, cost, mileage, author)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            maintenance_data['vehicle_id'],
+            maintenance_data['date'],
+            maintenance_data['description'],
+            maintenance_data['cost'],
+            maintenance_data['mileage'],
+            maintenance_data['author']
+        ))
+
+        # Atualiza os custos adicionais do veículo
+        c.execute('''
+            UPDATE vehicles 
+            SET additional_costs = (
+                SELECT COALESCE(SUM(cost), 0)
+                FROM maintenance
+                WHERE vehicle_id = ?
+            )
+            WHERE id = ?
+        ''', (maintenance_data['vehicle_id'], maintenance_data['vehicle_id']))
+
+        # Confirma a transação
+        c.execute('COMMIT')
+        conn.commit()
+    except Exception as e:
+        c.execute('ROLLBACK')
+        raise e
+    finally:
+        conn.close()
 
 def get_vehicle_maintenance(vehicle_id):
     conn = get_db()
@@ -285,25 +296,39 @@ def delete_maintenance(maintenance_id):
     conn = get_db()
     c = conn.cursor()
     
-    # Primeiro obtém os dados da manutenção antes de excluí-la
-    c.execute('SELECT vehicle_id, cost FROM maintenance WHERE id = ?', (maintenance_id,))
-    maintenance = c.fetchone()
-    
-    if maintenance:
-        vehicle_id, maintenance_cost = maintenance
+    try:
+        # Inicia uma transação
+        c.execute('BEGIN TRANSACTION')
         
-        # Remove a manutenção
-        c.execute('DELETE FROM maintenance WHERE id = ?', (maintenance_id,))
+        # Obtém o vehicle_id antes de deletar
+        c.execute('SELECT vehicle_id FROM maintenance WHERE id = ?', (maintenance_id,))
+        result = c.fetchone()
         
-        # Atualiza os custos adicionais do veículo subtraindo o custo da manutenção
-        c.execute('''
-            UPDATE vehicles
-            SET additional_costs = additional_costs - ?
-            WHERE id = ?
-        ''', (maintenance_cost, vehicle_id))
-        
-    conn.commit()
-    conn.close()
+        if result:
+            vehicle_id = result[0]
+            
+            # Remove a manutenção
+            c.execute('DELETE FROM maintenance WHERE id = ?', (maintenance_id,))
+            
+            # Recalcula o total de custos adicionais
+            c.execute('''
+                UPDATE vehicles 
+                SET additional_costs = (
+                    SELECT COALESCE(SUM(cost), 0)
+                    FROM maintenance
+                    WHERE vehicle_id = ?
+                )
+                WHERE id = ?
+            ''', (vehicle_id, vehicle_id))
+            
+        # Confirma a transação
+        c.execute('COMMIT')
+        conn.commit()
+    except Exception as e:
+        c.execute('ROLLBACK')
+        raise e
+    finally:
+        conn.close()
 
 def get_all_maintenance_records():
     conn = get_db()
