@@ -226,6 +226,7 @@ def delete_vehicle(vehicle_id):
 # Funções para gerenciar manutenções
 def add_maintenance(maintenance_data):
     conn = get_db()
+    conn.row_factory = sqlite3.Row  # Adiciona row factory para retornar dicionários
     c = conn.cursor()
     
     try:
@@ -245,24 +246,33 @@ def add_maintenance(maintenance_data):
             maintenance_data['author']
         ))
         
+        vehicle_id = maintenance_data['vehicle_id']
+        
+        # Recalcula o total de custos de manutenção
+        c.execute('''
+            SELECT COALESCE(SUM(cost), 0) as total_cost 
+            FROM maintenance 
+            WHERE vehicle_id = ?
+        ''', (vehicle_id,))
+        total_cost = c.fetchone()['total_cost']
+
         # Atualiza os custos adicionais do veículo
         c.execute('''
             UPDATE vehicles 
-            SET additional_costs = (
-                SELECT COALESCE(SUM(cost), 0)
-                FROM maintenance
-                WHERE vehicle_id = ?
-            )
+            SET additional_costs = ?
             WHERE id = ?
-        ''', (maintenance_data['vehicle_id'], maintenance_data['vehicle_id']))
-
-        # Atualiza o cache
-        c.execute('SELECT * FROM vehicles WHERE id = ?', (maintenance_data['vehicle_id'],))
+        ''', (total_cost, vehicle_id))
+        
+        # Obtém os dados atualizados do veículo
+        c.execute('SELECT * FROM vehicles WHERE id = ?', (vehicle_id,))
         vehicle = dict(c.fetchone())
-        update_vehicle_in_cache(maintenance_data['vehicle_id'], vehicle)
         
         # Confirma a transação
         conn.commit()
+        
+        # Atualiza o cache com os novos dados
+        update_vehicle_in_cache(vehicle_id, vehicle)
+        
     except Exception as e:
         conn.rollback()
         raise e
