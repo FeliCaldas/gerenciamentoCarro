@@ -288,3 +288,22 @@ def get_vehicle_by_details(brand, model, year, color):
     vehicle = c.fetchone()
     conn.close()
     return dict(vehicle) if vehicle else None
+
+def get_maintenance_totals_by_author():
+    """Retorna o total de manutenções por autor"""
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        SELECT author, SUM(cost) as total
+        FROM maintenance
+        GROUP BY author
+    ''')
+    results = c.fetchall()
+    conn.close()
+    
+    # Converte para dicionário
+    totals = {}
+    for author, total in results:
+        totals[author] = total
+    
+    return totals

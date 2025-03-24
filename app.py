@@ -5,7 +5,7 @@ import io
 from database import (
     init_db, add_vehicle, get_vehicles, update_vehicle, delete_vehicle,
     add_maintenance, get_vehicle_maintenance, update_maintenance, delete_maintenance,
-    get_all_maintenance_records, check_vehicle_exists, get_vehicle_by_details
+    get_all_maintenance_records, check_vehicle_exists, get_vehicle_by_details, get_maintenance_totals_by_author
 )
 from fipe_api import get_fipe_brands, get_fipe_models, get_fipe_years, get_fipe_price
 from vehicle_manager import save_image
@@ -58,9 +58,10 @@ def admin_section():
         - Confirme as alterações antes de salvar
     """)
 
-    tab1, tab2 = st.tabs([
+    tab1, tab2, tab3 = st.tabs([
         "📥 Importar/Exportar Veículos",
-        "📁 Gerenciar Logs"
+        "📁 Gerenciar Logs",
+        "📊 Relatório de Custos"
     ])
     with tab1:
         st.header("Importar/Exportar Veículos")
@@ -134,6 +135,33 @@ def admin_section():
     with tab2:
         st.header("Gerenciar Logs do Sistema")
         download_logs()
+
+    with tab3:
+        st.header("Relatório de Custos por Autor")
+        
+        # Busca totais do banco de dados
+        totals = get_maintenance_totals_by_author()
+        
+        # Cria colunas para exibir os totais
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.metric(
+                "Total Antonio",
+                f"R$ {totals.get('Antonio', 0):,.2f}",
+            )
+        
+        with col2:
+            st.metric(
+                "Total Fernando",
+                f"R$ {totals.get('Fernando', 0):,.2f}",
+            )
+        
+        # Total geral
+        st.metric(
+            "Total Geral",
+            f"R$ {sum(totals.values()):,.2f}",
+        )
 
 def import_vehicles_with_progress(vehicles, replace=False):
     """Função auxiliar para importar veículos com barra de progresso"""
