@@ -200,6 +200,10 @@ def import_vehicles_with_progress(vehicles, replace=False):
     return imported
 
 def main():
+    # Configurar diretório de dados persistente
+    if not os.path.exists("data"):
+        os.makedirs("data", exist_ok=True)
+    
     # Configuração da página para mobile
     st.set_page_config(
         page_title="Gerenciador de Veículos",
@@ -492,6 +496,7 @@ def main():
         admin_section()
     elif st.session_state.current_page == "add":
         add_vehicle_form()
+        backup_after_changes()
     else:  # view
         view_vehicles()
 
@@ -570,46 +575,46 @@ def view_maintenance_history(vehicle_id):
     if 'delete_confirmation' not in st.session_state:
         st.session_state.delete_confirmation = None
     
-    # Alterado para usar um único botão com key única
     col1, col2 = st.columns([4,1])
     with col2:
-        if st.button("➕ Nova", key=f"add_maint_btn_{vehicle_id}_{int(time.time())}"):
+        if st.button("➕ Nova", key=f"add_maint_btn_{vehicle_id}"):
             st.session_state.show_maintenance_form = True
             st.session_state.current_vehicle = vehicle_id
 
-    # Mostrar formulário de nova manutenção
-    if getattr(st.session_state, 'show_maintenance_form', False) and getattr(st.session_state, 'current_vehicle', None) == vehicle_id:
-        with st.container():
+    # Form de nova manutenção
+    if st.session_state.get('show_maintenance_form', False) and st.session_state.get('current_vehicle') == vehicle_id:
+        with st.form(key=f"maintenance_form_{vehicle_id}"):
             date = st.date_input("Data da Manutenção")
             description = st.text_area("Descrição do Serviço")
             cost = st.number_input("Custo (R$)", min_value=0.0, step=10.0, format="%.2f")
             mileage = st.number_input("Quilometragem", min_value=0)
-            author = st.selectbox("Autor da Manutenção", 
-                                ["Antonio", "Fernando"])
-
+            author = st.selectbox("Autor da Manutenção", ["Antonio", "Fernando"])
+            
             col1, col2 = st.columns(2)
-            with col1:
-                if st.button("💾 Salvar", key=f"save_maint_{vehicle_id}"):
-                    try:
-                        maintenance_info = {
-                            'vehicle_id': vehicle_id,
-                            'date': date.strftime('%Y-%m-%d'),
-                            'description': description,
-                            'cost': cost,
-                            'mileage': mileage,
-                            'author': author
-                        }
-                        add_maintenance(maintenance_info)
-                        st.success("Manutenção registrada com sucesso!")
-                        st.session_state.show_maintenance_form = False
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erro ao registrar manutenção: {str(e)}")
-
-            with col2:
-                if st.button("❌ Cancelar", key=f"cancel_add_{vehicle_id}"):
+            
+            submitted = st.form_submit_button("💾 Salvar")
+            
+            if submitted:
+                try:
+                    maintenance_info = {
+                        'vehicle_id': vehicle_id,
+                        'date': date.strftime('%Y-%m-%d'),
+                        'description': description,
+                        'cost': cost,
+                        'mileage': mileage,
+                        'author': author,
+                        'next_maintenance_date': None  # Campo opcional
+                    }
+                    add_maintenance(maintenance_info)
+                    st.success("✅ Manutenção registrada com sucesso!")
                     st.session_state.show_maintenance_form = False
                     st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Erro ao registrar manutenção: {str(e)}")
+        
+        if st.button("❌ Cancelar", key=f"cancel_add_{vehicle_id}"):
+            st.session_state.show_maintenance_form = False
+            st.rerun()
 
     # Exibir manutenções existentes
     if maintenance_records:

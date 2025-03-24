@@ -1,14 +1,54 @@
 import sqlite3
 import json
+import os
+import shutil
+from datetime import datetime
 from cache_manager import (
     save_vehicles_to_cache, load_vehicles_from_cache,
     update_vehicle_in_cache, delete_vehicle_from_cache
 )
 
+BACKUP_DIR = "data/backups"
+CURRENT_DB = "vehicles.db"
+
+def ensure_backup_dir():
+    """Garante que o diretório de backup existe"""
+    if not os.path.exists(BACKUP_DIR):
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+
+def create_backup():
+    """Cria backup do banco de dados atual"""
+    ensure_backup_dir()
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_file = os.path.join(BACKUP_DIR, f'vehicles_backup_{timestamp}.db')
+    
+    if os.path.exists(CURRENT_DB):
+        shutil.copy2(CURRENT_DB, backup_file)
+        
+        # Mantém apenas os 5 backups mais recentes
+        backups = sorted([f for f in os.listdir(BACKUP_DIR) if f.endswith('.db')])
+        if len(backups) > 5:
+            for old_backup in backups[:-5]:
+                os.remove(os.path.join(BACKUP_DIR, old_backup))
+
+def restore_latest_backup():
+    """Restaura o backup mais recente se o banco atual não existir"""
+    if not os.path.exists(CURRENT_DB) and os.path.exists(BACKUP_DIR):
+        backups = sorted([f for f in os.listdir(BACKUP_DIR) if f.endswith('.db')])
+        if backups:
+            latest_backup = os.path.join(BACKUP_DIR, backups[-1])
+            shutil.copy2(latest_backup, CURRENT_DB)
+            return True
+    return False
+
 def get_db():
     return sqlite3.connect('vehicles.db')
 
 def init_db():
+    """Inicializa o banco de dados com suporte a backup"""
+    # Tenta restaurar backup se necessário
+    restore_latest_backup()
+    
     conn = get_db()
     c = conn.cursor()
     
@@ -43,6 +83,9 @@ def init_db():
 
     conn.commit()
     conn.close()
+    
+    # Cria novo backup após inicialização
+    create_backup()
 
 def check_vehicle_exists(brand, model, year, color):
     """Verifica se um veículo com as mesmas características já existe"""
