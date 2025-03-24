@@ -10,6 +10,9 @@ CACHE_DIR = "cache"
 VEHICLE_CACHE_DURATION = timedelta(days=60)  # Cache de veículos: 2 meses
 FIPE_CACHE_DURATION = timedelta(hours=24)    # Cache FIPE: 24 horas
 
+# Adicionar constante para arquivo de backup
+BACKUP_FILE = os.path.join(CACHE_DIR, 'persistent_data.json')
+
 def ensure_cache_dir():
     if not os.path.exists(CACHE_DIR):
         os.makedirs(CACHE_DIR)
@@ -57,25 +60,56 @@ def clear_cache():
     except Exception as e:
         logger.error(f"Erro ao limpar cache: {e}")
 
+def save_persistent_data(data):
+    """Salva dados de forma persistente"""
+    ensure_cache_dir()
+    try:
+        with open(BACKUP_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
+        logger.info("Dados persistentes salvos com sucesso")
+    except Exception as e:
+        logger.error(f"Erro ao salvar dados persistentes: {e}")
+
+def load_persistent_data():
+    """Carrega dados persistentes"""
+    try:
+        if os.path.exists(BACKUP_FILE):
+            with open(BACKUP_FILE, 'r') as f:
+                data = json.load(f)
+            logger.info("Dados persistentes carregados com sucesso")
+            return data
+    except Exception as e:
+        logger.error(f"Erro ao carregar dados persistentes: {e}")
+    return None
+
 def save_vehicles_to_cache(vehicles_data):
-    """Salva veículos no cache"""
+    """Salva veículos no cache e no backup persistente"""
     try:
         save_to_cache('vehicles', vehicles_data)
-        logger.info(f"Cache de veículos atualizado com {len(vehicles_data)} veículos")
+        save_persistent_data({'vehicles': vehicles_data}) # Adiciona persistência
+        logger.info(f"Cache e backup de veículos atualizados com {len(vehicles_data)} veículos")
     except Exception as e:
         logger.error(f"Erro ao salvar cache de veículos: {e}")
 
 def load_vehicles_from_cache():
-    """Carrega veículos do cache"""
+    """Carrega veículos do cache ou do backup persistente"""
     try:
+        # Tenta carregar do cache primeiro
         data = load_from_cache('vehicles')
         if data is not None:
             logger.info("Cache de veículos carregado com sucesso")
             return data
-        logger.debug("Cache de veículos não encontrado ou expirado")
+            
+        # Se não encontrar no cache, tenta carregar do backup
+        persistent_data = load_persistent_data()
+        if persistent_data and 'vehicles' in persistent_data:
+            logger.info("Veículos carregados do backup persistente")
+            return persistent_data['vehicles']
+            
+        logger.debug("Nenhum dado encontrado (cache ou persistente)")
         return None
     except Exception as e:
-        logger.error(f"Erro ao carregar cache de veículos: {e}")
+        logger.error(f"Erro ao carregar veículos: {e}")
         return None
 
 def update_vehicle_in_cache(vehicle_id, vehicle_data):
