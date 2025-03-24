@@ -226,7 +226,6 @@ def delete_vehicle(vehicle_id):
 # Funções para gerenciar manutenções
 def add_maintenance(maintenance_data):
     conn = get_db()
-    conn.row_factory = sqlite3.Row  # Adiciona row factory para retornar dicionários
     c = conn.cursor()
     
     try:
@@ -241,31 +240,24 @@ def add_maintenance(maintenance_data):
             maintenance_data['vehicle_id'],
             maintenance_data['date'],
             maintenance_data['description'],
-            maintenance_data['cost'],
+            float(maintenance_data['cost']), # Garante que cost é float
             maintenance_data['mileage'],
             maintenance_data['author']
         ))
         
         vehicle_id = maintenance_data['vehicle_id']
+        cost = float(maintenance_data['cost']) # Garante que cost é float
         
-        # Recalcula o total de custos de manutenção
+        # Atualiza os custos adicionais do veículo somando o novo custo
         c.execute('''
-            SELECT COALESCE(SUM(cost), 0) as total_cost 
-            FROM maintenance 
-            WHERE vehicle_id = ?
-        ''', (vehicle_id,))
-        total_cost = c.fetchone()['total_cost']
-
-        # Atualiza os custos adicionais do veículo
-        c.execute('''
-            UPDATE vehicles 
-            SET additional_costs = ?
+            UPDATE vehicles
+            SET additional_costs = additional_costs + ?
             WHERE id = ?
-        ''', (total_cost, vehicle_id))
+        ''', (cost, vehicle_id))
         
-        # Obtém os dados atualizados do veículo
+        # Busca os dados atualizados do veículo
         c.execute('SELECT * FROM vehicles WHERE id = ?', (vehicle_id,))
-        vehicle = dict(c.fetchone())
+        vehicle = dict(zip([col[0] for col in c.description], c.fetchone()))
         
         # Confirma a transação
         conn.commit()
