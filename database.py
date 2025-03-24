@@ -245,15 +245,21 @@ def add_maintenance(maintenance_data):
             maintenance_data['author']
         ))
         
-        # Pega o vehicle_id para atualização
-        vehicle_id = maintenance_data['vehicle_id']
-        
-        # Atualiza os custos adicionais do veículo somando direto
+        # Atualiza os custos adicionais do veículo
         c.execute('''
-            UPDATE vehicles
-            SET additional_costs = additional_costs + ?
+            UPDATE vehicles 
+            SET additional_costs = (
+                SELECT COALESCE(SUM(cost), 0)
+                FROM maintenance
+                WHERE vehicle_id = ?
+            )
             WHERE id = ?
-        ''', (maintenance_data['cost'], vehicle_id))
+        ''', (maintenance_data['vehicle_id'], maintenance_data['vehicle_id']))
+
+        # Atualiza o cache
+        c.execute('SELECT * FROM vehicles WHERE id = ?', (maintenance_data['vehicle_id'],))
+        vehicle = dict(c.fetchone())
+        update_vehicle_in_cache(maintenance_data['vehicle_id'], vehicle)
         
         # Confirma a transação
         conn.commit()
@@ -275,20 +281,45 @@ def get_vehicle_maintenance(vehicle_id):
 def update_maintenance(maintenance_id, maintenance_data):
     conn = get_db()
     c = conn.cursor()
-    c.execute('''
-        UPDATE maintenance
-        SET date=?, description=?, cost=?, mileage=?, author=?
-        WHERE id=?
-    ''', (
-        maintenance_data['date'],
-        maintenance_data['description'],
-        maintenance_data['cost'],
-        maintenance_data['mileage'],
-        maintenance_data['author'],
-        maintenance_id
-    ))
-    conn.commit()
-    conn.close()
+    try:
+        c.execute('BEGIN TRANSACTION')
+
+        # Atualiza a manutenção
+        c.execute('''
+            UPDATE maintenance
+            SET date=?, description=?, cost=?, mileage=?, author=?
+            WHERE id=?
+        ''', (
+            maintenance_data['date'],
+            maintenance_data['description'],
+            maintenance_data['cost'],
+            maintenance_data['mileage'],
+            maintenance_data['author'],
+            maintenance_id
+        ))
+
+        # Recalcula custos adicionais do veículo
+        c.execute('''
+            UPDATE vehicles 
+            SET additional_costs = (
+                SELECT COALESCE(SUM(cost), 0)
+                FROM maintenance
+                WHERE vehicle_id = ?
+            )
+            WHERE id = ?
+        ''', (maintenance_data['vehicle_id'], maintenance_data['vehicle_id']))
+
+        # Atualiza o cache
+        c.execute('SELECT * FROM vehicles WHERE id = ?', (maintenance_data['vehicle_id'],))
+        vehicle = dict(c.fetchone())
+        update_vehicle_in_cache(maintenance_data['vehicle_id'], vehicle)
+        
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
 
 def delete_maintenance(maintenance_id):
     conn = get_db()
